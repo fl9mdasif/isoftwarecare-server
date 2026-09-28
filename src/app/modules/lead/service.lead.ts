@@ -2,6 +2,8 @@ import httpStatus from 'http-status';
 import AppError from '../../errors/AppErrors';
 import { TLead, TLeadStatus } from './interface.lead';
 import { Lead } from './model.lead';
+import { Service } from '../service/model.service';
+import { notifyNewLead } from './notify.lead';
 
 type TCreateLeadInput = Pick<TLead, 'name' | 'email' | 'message'> &
   Partial<Pick<TLead, 'phone' | 'serviceInterested' | 'budget' | 'source'>> & {
@@ -18,7 +20,7 @@ const createLead = async (payload: TCreateLeadInput) => {
     return null;
   }
 
-  return Lead.create({
+  const lead = await Lead.create({
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
@@ -28,6 +30,16 @@ const createLead = async (payload: TCreateLeadInput) => {
     source: payload.source,
     status: 'new',
   });
+
+  // Awaited, not fire-and-forget: on a serverless host the function can freeze
+  // the moment the response is flushed, which would drop an unawaited send.
+  // notifyNewLead never rejects, so a mail outage cannot fail a captured lead.
+  const service = lead.serviceInterested
+    ? await Service.findById(lead.serviceInterested).select('title').lean()
+    : null;
+  await notifyNewLead(lead, service?.title);
+
+  return lead;
 };
 
 const getAllLeads = async (query: Record<string, unknown>) => {

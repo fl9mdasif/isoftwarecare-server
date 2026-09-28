@@ -19,6 +19,14 @@ export default {
   jwt_access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN,
   jwt_refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN,
   admin_email: process.env.ADMIN_EMAIL,
+  // Where new-lead alerts are delivered. Falls back to ADMIN_EMAIL.
+  notify_email: process.env.NOTIFY_EMAIL,
+  // Plunk transactional email (https://useplunk.com). Secret key only — never
+  // expose it to the browser. Without it, lead emails are skipped and logged.
+  plunk_secret_key: process.env.PLUNK_SECRET_KEY,
+  // Must be a verified sender in Plunk, otherwise Plunk uses the account default.
+  mail_from: process.env.MAIL_FROM,
+  mail_from_name: process.env.MAIL_FROM_NAME || 'Interactive Software Care',
   // Base URL of the public site — used to build absolute <loc> entries in sitemap.xml.
   site_url: process.env.SITE_URL || 'https://example.com',
   // Comma-separated list of allowed CORS origins for the deployed client,

@@ -17,10 +17,18 @@ const generateSitemap = async () => {
     PortfolioItem.find({}).select('slug updatedAt'),
   ]);
 
-  const staticEntries = [urlEntry(`${base}/`), urlEntry(`${base}/services`), urlEntry(`${base}/portfolio`)];
+  // These paths must match the client's App Router routes exactly. The portfolio
+  // module is exposed to visitors as /work, not /portfolio.
+  const staticEntries = [
+    urlEntry(`${base}/`),
+    urlEntry(`${base}/services`),
+    urlEntry(`${base}/work`),
+    urlEntry(`${base}/book`),
+    urlEntry(`${base}/contact`),
+  ];
 
   const serviceEntries = services.map((s) => urlEntry(`${base}/services/${s.slug}`, s.updatedAt));
-  const portfolioEntries = portfolioItems.map((p) => urlEntry(`${base}/portfolio/${p.slug}`, p.updatedAt));
+  const portfolioEntries = portfolioItems.map((p) => urlEntry(`${base}/work/${p.slug}`, p.updatedAt));
 
   const body = [...staticEntries, ...serviceEntries, ...portfolioEntries].join('');
 
