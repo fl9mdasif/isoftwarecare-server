@@ -14,6 +14,7 @@ Backend API for **Interactive Software Care**, an IT/software solutions agency (
 | Auth | JWT (access + refresh) with bcrypt password hashing |
 | Security | Helmet, `express-rate-limit`, a hand-rolled Mongo-injection sanitizer |
 
+The frontend that consumes this API lives in [`../client`](../client) (Next.js 16).
 See [`SERVER-ARCHITECTURE.md`](./SERVER-ARCHITECTURE.md) for the full backend conventions this project follows.
 
 ## Features
@@ -24,9 +25,10 @@ See [`SERVER-ARCHITECTURE.md`](./SERVER-ARCHITECTURE.md) for the full backend co
 - **Service** — the agency's service offerings, publicly listed and admin-managed.
 - **Portfolio** — case studies / past work, categorized, publicly listed.
 - **Testimonial** — client testimonials with an approval workflow; nothing is public until a staff/admin approves it.
-- **Lead** — the public contact-form endpoint. Rate-limited, honeypot spam filtering, and server-side field allowlisting so a submission can never set its own status or internal notes.
+- **Lead** — the public contact-form endpoint. Rate-limited, honeypot spam filtering, and server-side field allowlisting so a submission can never set its own status or internal notes. On submission it emails a notification to the team and an auto-reply to the prospect.
 - **Settings** — singleton config for marketing pixel IDs (Facebook, GA, GTM, Search Console) and public contact/social info.
-- **Sitemap** — `GET /sitemap.xml`, generated from active services and portfolio items, mounted at the app root.
+- **Sitemap** — `GET /sitemap.xml`, generated from active services and portfolio items, mounted at the app root. Portfolio items are emitted as `/work/<slug>`, matching the client's routes rather than the module name.
+- **Mail** — Gmail SMTP through `nodemailer`. Isolated behind `sendMail()` in `utils/mailer.ts`, so swapping provider touches one file.
 
 ## Roles
 
@@ -68,6 +70,11 @@ cp .env.example .env
 | `ADMIN_EMAIL` | Public contact email surfaced via the settings module |
 | `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASS` | Credentials for the superAdmin account seeded on first boot |
 | `SITE_URL` | Public site base URL, used to build `sitemap.xml` |
+| `GMAIL_USER` | Gmail address that sends lead notifications |
+| `GMAIL_APP_PASSWORD` | Google **App Password** (16 chars), not the account password. Requires 2-Step Verification. Spaces are stripped automatically |
+| `MAIL_FROM` | Sender address. Blank falls back to `GMAIL_USER` |
+| `MAIL_FROM_NAME` | Display name on outgoing mail |
+| `NOTIFY_EMAIL` | Inbox that receives new-lead alerts. Falls back to `ADMIN_EMAIL` |
 | `CLIENT_URL` | Comma-separated list of allowed CORS origins for the deployed frontend |
 
 ### Run
@@ -76,7 +83,14 @@ cp .env.example .env
 npm run dev     # local development, auto-restarts on change
 npm run build   # type-check and compile to dist/
 npm start       # run the compiled build (after npm run build)
+
+npm run verify:mail            # check SMTP credentials, sends nothing
+npm run verify:mail -- --send  # also deliver one test email
 ```
+
+> `.env` is read once at process start. `ts-node-dev` only restarts on **source**
+> changes, so after editing `.env` you must touch a `.ts` file or restart the
+> dev server — otherwise the new values are silently ignored.
 
 On first boot, a `superAdmin` account is automatically seeded from `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASS` if one doesn't already exist.
 
@@ -96,6 +110,28 @@ All routes are mounted under `/api/v1`, except `sitemap.xml` which is served at 
 | Settings | `/api/v1/settings` | get | — | update |
 | Sitemap | `/sitemap.xml` | get | — | — |
 
+## Email
+
+Lead notifications go out over Gmail SMTP (`smtp.gmail.com:465`).
+
+1. Enable 2-Step Verification on the Gmail account
+2. Create an App Password at **myaccount.google.com → Security → App passwords**
+3. Put it in `GMAIL_APP_PASSWORD`
+4. `npm run verify:mail` → expect `PASS`
+
+`verify:mail` performs a full SMTP handshake without queuing a message, so a bad
+credential fails in a second instead of silently swallowing lead notifications in
+production.
+
+Two emails are sent per lead: an alert to `NOTIFY_EMAIL` with reply-to set to the
+prospect, and an auto-reply to the prospect with reply-to set to the team inbox.
+The send is awaited rather than fire-and-forget, because a serverless function can
+freeze the moment the response flushes. `sendMail()` never throws — a mail outage
+must not turn a captured lead into a 500.
+
+If the credentials are unset the API still captures leads; it logs a warning and
+sends nothing.
+
 ## Security
 
 - `helmet()` on every response, plus an explicit CORS allowlist (never `*`).
@@ -109,6 +145,8 @@ All routes are mounted under `/api/v1`, except `sitemap.xml` which is served at 
 ## Project Structure
 
 ```
+scripts/
+  verify-mail.js          # SMTP credential checker
 src/
   app.ts                  # Express app: security middleware, CORS, route mounting
   server.ts               # Entry point: DB connect, seed, listen

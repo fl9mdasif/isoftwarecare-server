@@ -26,7 +26,7 @@ const shell = (inner: string) => `
 /** The internal alert: everything needed to reply without opening a dashboard. */
 const internalAlert = (lead: TLeadDocument, serviceTitle?: string) =>
   shell(`
-    <h1 style="margin:0 0 4px;font-size:18px;color:#12151d">New lead from the website</h1>
+    <h1 style="margin:0 0 4px;font-size:18px;color:#12151d">New lead from isoftcare.com</h1>
     <p style="margin:0 0 18px;font-size:13px;color:#8590a2">
       Submitted ${lead.createdAt.toUTCString()}
     </p>
