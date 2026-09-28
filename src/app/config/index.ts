@@ -21,10 +21,12 @@ export default {
   admin_email: process.env.ADMIN_EMAIL,
   // Where new-lead alerts are delivered. Falls back to ADMIN_EMAIL.
   notify_email: process.env.NOTIFY_EMAIL,
-  // Plunk transactional email (https://useplunk.com). Secret key only — never
-  // expose it to the browser. Without it, lead emails are skipped and logged.
-  plunk_secret_key: process.env.PLUNK_SECRET_KEY,
-  // Must be a verified sender in Plunk, otherwise Plunk uses the account default.
+  // Gmail SMTP. GMAIL_APP_PASSWORD is a Google App Password (needs 2-Step
+  // Verification on the account) — never the account password. Without these,
+  // lead emails are skipped and logged rather than failing the request.
+  gmail_user: process.env.GMAIL_USER,
+  gmail_app_password: process.env.GMAIL_APP_PASSWORD,
+  // Defaults to GMAIL_USER. Gmail only allows sending as a verified alias.
   mail_from: process.env.MAIL_FROM,
   mail_from_name: process.env.MAIL_FROM_NAME || 'Interactive Software Care',
   // Base URL of the public site — used to build absolute <loc> entries in sitemap.xml.
