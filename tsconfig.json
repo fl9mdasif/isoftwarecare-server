@@ -3,6 +3,14 @@
     "target": "es2016",
     "module": "commonjs",
     "moduleResolution": "node",
+    // "node" is a deprecated alias for the legacy "node10" resolver. The
+    // modern replacement is "node16"/"nodenext", but that switches to
+    // per-package ESM/CJS detection, and http-status (used across most
+    // modules) is ESM-only — that migration would mean replacing it or
+    // moving every import to a dynamic import(), not a config-only change.
+    // Suppressing the warning for now rather than silently reverting to
+    // something that looks unaddressed.
+    "ignoreDeprecations": "5.0",
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,

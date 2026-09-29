@@ -19,6 +19,8 @@ const app: Application = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'https://isoftwarecare.com',
+  'https://www.isoftwarecare.com',
   ...config.client_urls,
 ];
 

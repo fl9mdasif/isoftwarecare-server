@@ -4,3 +4,5 @@ dist/
 *.log
 SERVER-ARCHITECTURE.md
 
+
+.vercel
